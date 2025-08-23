@@ -1,0 +1,25 @@
++JobBatchName = "@@JobBatchName@@"
++JobFlavour = "testmatch"
+
+environment  = "JobBatchName=@@JobBatchName@@"
+
+Universe = vanilla 
+
+Executable =  @@JobPath@@/run.sh
+ 
+Error =  @@JobPath@@/$(ClusterId).$(ProcId).err
+Output =  @@JobPath@@/$(ClusterId).$(ProcId).out
+Log =  @@JobPath@@/$(ClusterId).log
+
+request_cpus = 1
+request_memory = 1024
+
+use_x509userproxy = True
+x509userproxy = @@JobPath@@/MyProxy
+
+should_transfer_files = yes
+transfer_input_files =  @@JobPath@@/rivet.py, @@JobPath@@/inputs.txt, @@JobPath@@/MyProxy
+
++SingularityImage = "/cvmfs/singularity.opensciencegrid.org/cmssw/cms:rhel9"
+
+Queue
