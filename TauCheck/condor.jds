@@ -20,6 +20,8 @@ x509userproxy = @@JobPath@@/MyProxy
 should_transfer_files = yes
 transfer_input_files =  @@JobPath@@/rivet.py, @@JobPath@@/inputs.txt, @@JobPath@@/MyProxy
 
+transfer_output_remaps = "out.yoda=@@JobPath@@/@@JobBatchName@@.yoda"
+
 +SingularityImage = "/cvmfs/singularity.opensciencegrid.org/cmssw/cms:rhel9"
 
 Queue

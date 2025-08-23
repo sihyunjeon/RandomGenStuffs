@@ -2,7 +2,7 @@ import os
 
 def job_config():
     config = {
-        "maxEvents": 20000
+        "maxEvents": 500000
     }
     return config
 

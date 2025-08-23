@@ -11,7 +11,7 @@ if [ -f "MyProxy" ]; then
     mv ../rivet.py ./
     mv ../inputs.txt ./
     cmsRun rivet.py
-    mv out.yoda ../${JobBatchName}.yoda
+    mv out.yoda ../
 else
     source /cvmfs/cms.cern.ch/rucio/setup.sh
     voms-proxy-init --voms cms

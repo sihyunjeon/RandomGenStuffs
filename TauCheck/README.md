@@ -18,7 +18,7 @@ python3 collect.py
 # create job directories based on txt files created in inputs directory
 # this will automatically submit the condor jobs for you
 # final output will be <DatasetName>.yoda
-# modify config dictionary in the job_config function for maxEvents modification, default 20000
+# modify config dictionary in the job_config function for maxEvents modification, default 500000
 python3 submit.py
 
 # collect final histograms using usual rivet interface commands
