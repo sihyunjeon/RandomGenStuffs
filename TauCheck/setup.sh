@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
 source /cvmfs/cms.cern.ch/cmsset_default.sh
-if [ -f "MyProxy" ]; then
-    echo "MyProxy exists, running rivet"
-    mkdir hide_job
-    cd hide_job
+if [ -d "CMSSW_14_2_0" ]; then
+    echo "CMSSW_14_2_0 already exists."
+else
     cmsrel CMSSW_14_2_0
     cd CMSSW_14_2_0/src
     cmsenv
     cd ../../
+fi
+if [ -f "MyProxy" ]; then
+    echo "MyProxy exists, running rivet"
+    mkdir hide_job
+    cd hide_job
     mv ../rivet.py ./
     mv ../inputs.txt ./
     cmsRun rivet.py
