@@ -4,10 +4,11 @@ if [ -d "CMSSW_14_2_0" ]; then
     echo "CMSSW_14_2_0 already exists."
 else
     cmsrel CMSSW_14_2_0
-    cd CMSSW_14_2_0/src
-    cmsenv
-    cd ../../
 fi
+cd CMSSW_14_2_0/src
+cmsenv
+cd ../../
+
 if [ -f "MyProxy" ]; then
     echo "MyProxy exists, running rivet"
     mkdir hide_job
