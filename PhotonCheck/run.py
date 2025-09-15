@@ -28,15 +28,6 @@ def remove_overlaps(pair1, pair2):
     overlap = ak.any(delta_r < 0.4, axis=2)
     return ~overlap
 
-def get_photon_corr(pt):
-    with open("correction.json") as f:
-        data = json.load(f)
-    bin_edges = np.array(data["bin_edges"])
-    ratios = np.array(data["ratios"])
-    idx = np.digitize(pt, bin_edges) - 1
-    idx = ak.where(idx > 40, 40, idx)
-    return ak.flatten(ratios[idx])
-
 def process_file(dataset_name, file):
     events = uproot.open(file)["Events"]
     weight = events["genWeight"].array()
@@ -45,29 +36,19 @@ def process_file(dataset_name, file):
     genphotons = construct_vector({k: events[f"GenIsolatedPhoton_{k}"].array() for k in keys})
     genjets = construct_vector({k: events[f"GenJet_{k}"].array() for k in keys})
 
-    genphotons_mask = (genphotons["pt"] > 230) & (np.abs(genphotons["eta"]) < 1.4442)
-    genphotons = genphotons[genphotons_mask]
+    genphotons_mask = (genphotons["pt"] > 150) & (np.abs(genphotons["eta"]) < 2.0)
+    genphoton = genphotons[genphotons_mask][:,0:1]
 
-    genjets_mask = (genjets["pt"] > 20) & (np.abs(genjets["eta"]) < 2.5)
+    genjets_mask = (genjets["pt"] > 50) & (np.abs(genjets["eta"]) < 3.0)
     genjets = genjets[genjets_mask]
-    genjets = genjets[remove_overlaps(genjets, genphotons)]
+    genjet = genjets[remove_overlaps(genjets, genphotons)][:,0:1]
 
-    monojet_mask = (genjets["pt"] > 100)
-    monojet = genjets[monojet_mask]
+    event_mask = (ak.num(genphoton,axis=1) > 0) & (ak.num(genjet, axis=1) > 0)
 
-    weight_corr = ak.ones_like(weight)
-    if "aMCatNLO" in dataset_name:
-        lheparts = construct_vector({k: events[f"LHEPart_{k}"].array() for k in keys + ["pdgId"]})
-        lheparts_mask = (lheparts["pdgId"] == 22)
-        lhephotons_pt = lheparts[lheparts_mask]["pt"]
-        weight_corr = get_photon_corr(lhephotons_pt)
-    events_mask = (ak.num(monojet, axis=1) > 0) & (ak.num(genphotons, axis=1) > 0)
     return {
-        "genphoton": genphotons[events_mask][:,0],
-        "monojet": monojet[events_mask][:,0],
-        "ngenjets": ak.num(genjets[events_mask], axis=1),
+        "genphoton": genphoton[event_mask],
+        "genjet": genjet[event_mask],
         "weight": weight[events_mask],
-        "weight_corr": weight_corr[events_mask],
         "weight_sum_filtered": np.sum(weight[events_mask]),
         "weight_sum_prefilter": np.sum(weight),
     }
@@ -98,44 +79,41 @@ def main():
         "Sherpa": [
 "/GJ-4Jets-2NLO2LO_Bin-PTG-25_Par-BiasedPTG_TuneSherpaDef_13p6TeV_sherpaMEPS/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM"
         ],
-        "aMCatNLO_100to200": [
-"/GJ_PTG-100to200_TuneCP5_13p6TeV_amcatnlo-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v3/NANOAODSIM"
-        ],
-        "aMCatNLO_200to400": [
-"/GJ_PTG-200to400_TuneCP5_13p6TeV_amcatnlo-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v3/NANOAODSIM"
-        ],
-        "aMCatNLO_400to600": [
-"/GJ_PTG-400to600_TuneCP5_13p6TeV_amcatnlo-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v15_ext1-v2/NANOAODSIM"
-        ],
-        "aMCatNLO_600": [
-"/GJ_PTG-600_TuneCP5_13p6TeV_amcatnlo-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v15_ext1-v2/NANOAODSIM"
-        ],
         "MadGraph_100to200_1000": [
-"/GJ-4Jets_dRGJ-0p25_PTG-100to200_HT-1000_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM"
+"/GJ-4Jets_dRGJ-0p25_PTG-100to200_HT-1000_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+"/GJ-4Jets_Bin-HT-1000-PTG-100to200_Par-dRGJ-0p25_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM"
         ],
         "MadGraph_100to200_200to400": [
-"/GJ-4Jets_dRGJ-0p25_PTG-100to200_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM"
+"/GJ-4Jets_dRGJ-0p25_PTG-100to200_HT-200to400_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+"/GJ-4Jets_Bin-HT-200to400-PTG-100to200_Par-dRGJ-0p25_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM"
         ],
         "MadGraph_100to200_400to600": [
-"/GJ-4Jets_dRGJ-0p25_PTG-100to200_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v3/NANOAODSIM"
+"/GJ-4Jets_dRGJ-0p25_PTG-100to200_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v3/NANOAODSIM",
+"/GJ-4Jets_Bin-HT-400to600-PTG-100to200_Par-dRGJ-0p25_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM"
         ],
         "MadGraph_100to200_40to200": [
-"/GJ-4Jets_dRGJ-0p25_PTG-100to200_HT-40to200_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM"
+"/GJ-4Jets_dRGJ-0p25_PTG-100to200_HT-40to200_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+"/GJ-4Jets_Bin-HT-40to200-PTG-100to200_Par-dRGJ-0p25_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM"
         ],
         "MadGraph_100to200_600to1000": [
-"/GJ-4Jets_dRGJ-0p25_PTG-100to200_HT-600to1000_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM"
+"/GJ-4Jets_dRGJ-0p25_PTG-100to200_HT-600to1000_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+"/GJ-4Jets_Bin-HT-600to1000-PTG-100to200_Par-dRGJ-0p25_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM"
         ],
         "MadGraph_200_1000": [
-"/GJ-4Jets_dRGJ-0p25_PTG-200_HT-1000_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM"
+"/GJ-4Jets_dRGJ-0p25_PTG-200_HT-1000_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+"/GJ-4Jets_Bin-HT-1000-PTG-200_Par-dRGJ-0p25_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM"
         ],
         "MadGraph_200_400to600": [
-"/GJ-4Jets_dRGJ-0p25_PTG-200_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM"
+"/GJ-4Jets_dRGJ-0p25_PTG-200_HT-400to600_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+"/GJ-4Jets_Bin-HT-400to600-PTG-200_Par-dRGJ-0p25_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM"
         ],
         "MadGraph_200_40to400": [
-"/GJ-4Jets_dRGJ-0p25_PTG-200_HT-40to400_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM"
+"/GJ-4Jets_dRGJ-0p25_PTG-200_HT-40to400_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+"/GJ-4Jets_Bin-HT-40to400-PTG-200_Par-dRGJ-0p25_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM"
         ],
         "MadGraph_200_600to1000": [
-"/GJ-4Jets_dRGJ-0p25_PTG-200_HT-600to1000_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM"
+"/GJ-4Jets_dRGJ-0p25_PTG-200_HT-600to1000_TuneCP5_13p6TeV_madgraphMLM-pythia8/Run3Summer23NanoAODv12-130X_mcRun3_2023_realistic_v14-v2/NANOAODSIM",
+"/GJ-4Jets_Bin-HT-600to1000-PTG-200_Par-dRGJ-0p25_TuneCP5_13p6TeV_madgraphMLM-pythia8/RunIII2024Summer24NanoAODv15-150X_mcRun3_2024_realistic_v2-v2/NANOAODSIM"
         ],
     }
     input_data = get_dataset.Get(inputs)
@@ -144,7 +122,7 @@ def main():
         index = 0
         batches = []
         worker_func = partial(process_file, dataset_name)
-        with Pool(8) as pool:
+        with Pool(4) as pool:
             with tqdm(total=len(input_files), desc=f"{dataset_name}", unit="file") as pbar:
                 for output in pool.imap_unordered(worker_func, input_files):
                     batches.append(output)
