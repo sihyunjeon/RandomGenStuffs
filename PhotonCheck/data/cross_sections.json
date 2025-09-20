@@ -1,0 +1,17 @@
+{
+    "Sherpa": 2.006e+05,
+    "aMCatNLO_100to200": 1392.0,
+    "aMCatNLO_200to400": 88.34,
+    "aMCatNLO_400to600": 3.803,
+    "aMCatNLO_600": 0.5769,
+    "MadGraph_100to200_1000": 1.637,
+    "MadGraph_100to200_200to400": 203.1,
+    "MadGraph_100to200_400to600": 29.97,
+    "MadGraph_100to200_40to200": 556.4,
+    "MadGraph_100to200_600to1000": 9.634,
+    "MadGraph_200_1000": 1.018,
+    "MadGraph_200_400to600": 11.79,
+    "MadGraph_200_40to400": 43.93,
+    "MadGraph_200_600to1000": 4.756
+}
+

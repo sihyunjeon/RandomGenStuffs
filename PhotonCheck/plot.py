@@ -3,6 +3,7 @@ import uproot
 import matplotlib.pyplot as plt
 import h5py
 import numpy as np
+import awkward as ak
 import json
 from hist import Hist
 import mplhep as hep
@@ -25,7 +26,7 @@ def get_colors(dataset):
 def get_hists():
     bins = {
         "genphoton_pt": [230,250,270,290,310,330,350,400,450,500,600,700,800,1000],
-        "monojet_pt": [100,120,140,160,180,200,220,250,300,350,400,450,500,700]
+        "genjet_pt": [100,120,140,160,180,200,220,250,300,350,400,450,500,700]
     }
     hists = {
         "ngenjets": {
@@ -40,12 +41,12 @@ def get_hists():
             "hist": Hist.new.Reg(20, -2.5, 2.5, name="genphoton_eta", label="Photon ETA", overflow=True).Weight(),
             "xlabel": "Lead.Gen.Photon ETA"
         },
-        "monojet_pt": {
-            "hist": Hist.new.Var(bins["monojet_pt"], name="monojet_pt", label="Jet PT [GeV]", overflow=True).Weight(),
+        "genjet_pt": {
+            "hist": Hist.new.Var(bins["genjet_pt"], name="genjet_pt", label="Jet PT [GeV]", overflow=True).Weight(),
             "xlabel": "Lead.Gen.Jet PT [GeV]"
         },
-        "monojet_eta": {
-            "hist": Hist.new.Reg(20, -2.5, 2.5, name="monojet_eta", label="Jet ETA", overflow=True).Weight(),
+        "genjet_eta": {
+            "hist": Hist.new.Reg(20, -2.5, 2.5, name="genjet_eta", label="Jet ETA", overflow=True).Weight(),
             "xlabel": "Lead.Gen.Jet ETA"
         },
     }
@@ -64,15 +65,11 @@ class Histogrammer:
             self.weight_sum_prefilter += float(rf["weight_sum_prefilter"][()])
             self.weight_sum_filtered += float(rf["weight_sum_filtered"][()])
             weights = rf["weight"][:]
-            weights_corr = rf["weight_corr"][:]
-            for obj_name in ["genphoton", "monojet"]:
+            for obj_name in ["genphoton", "genjet"]:
                 obj = rf[obj_name][:]
                 for val_name in ["pt", "eta"]:
-                    val = obj[val_name]
-                    self.hists[f"{obj_name}_{val_name}"]["hist"].fill(val, weight=weights*weights_corr)
-            for var_name in ["ngenjets"]:
-                val = rf[var_name][:]
-                self.hists[var_name]["hist"].fill(val, weight=weights*weights_corr)
+                    val = ak.flatten(obj[val_name])
+                    self.hists[f"{obj_name}_{val_name}"]["hist"].fill(val, weight=weights)
     def Save(self):
         with uproot.recreate(f"outputs/rootfiles/{self.sample_name}.root") as wf:
             for hist_name, info in self.hists.items():
@@ -141,24 +138,24 @@ class Plotter:
         plt.savefig(f"outputs/hists/{self.hist_name}.png")
 
 def main(datasets):
-    #for dataset_name, sample_names in datasets.items():
-    #    for sample_name in sample_names:
-    #        histogrammer = Histogrammer(sample_name=sample_name)
-    #        data = [f"inputs/{sample_name}/{f}" for f in os.listdir(f"inputs/{sample_name}") if f.endswith(".h5")]
-    #        for i, file in enumerate(data):
-    #            histogrammer.Process(file=file)
-    #        histogrammer.Save()
+    for dataset_name, sample_names in datasets.items():
+        for sample_name in sample_names:
+            histogrammer = Histogrammer(sample_name=sample_name)
+            data = [f"inputs/{sample_name}/{f}" for f in os.listdir(f"inputs/{sample_name}") if f.endswith(".h5")]
+            for i, file in enumerate(data):
+                histogrammer.Process(file=file)
+            histogrammer.Save()
 
     for hist_name, hist_info, in get_hists().items():
         plotter = Plotter(hist_name=hist_name, hist_info=hist_info)
         for dataset_name, sample_names in datasets.items():
             plotter.Stack(dataset_name, sample_names)
-        plotter.Plot("aMCatNLO", ["Sherpa", "MadGraph"])
+        plotter.Plot("Sherpa", ["Sherpa", "MadGraph"])
 
 if __name__ == "__main__":
     datasets = {
         "Sherpa" : ["Sherpa"],
-        "aMCatNLO" : ["aMCatNLO_100to200", "aMCatNLO_200to400", "aMCatNLO_400to600", "aMCatNLO_600"],
+        #"aMCatNLO" : ["aMCatNLO_100to200", "aMCatNLO_200to400", "aMCatNLO_400to600", "aMCatNLO_600"],
         "MadGraph" : ["MadGraph_100to200_1000", "MadGraph_100to200_200to400", "MadGraph_100to200_400to600", "MadGraph_100to200_40to200",
                       "MadGraph_100to200_600to1000", "MadGraph_200_1000", "MadGraph_200_400to600", "MadGraph_200_40to400", "MadGraph_200_600to1000"]
     }

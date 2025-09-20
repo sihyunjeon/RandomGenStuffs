@@ -52,7 +52,7 @@ def Get(inputs={}):
     client = Client()
     sites_xrootd_prefix = get_xrootd_sites_map()
 
-    sites_regex = r"T[123]_(US|KR)_\w+" 
+    sites_regex = r"T[123]_(US)_\w+" 
     output = {}
     for dataset_name, datasets in inputs.items():
         unique_paths = set()
@@ -73,7 +73,7 @@ def Get(inputs={}):
             "files": sorted(unique_paths),
             "datasets": sorted(datasets)
         }
-        with open(f"{dataset_name}.json", "w") as wf:
-            json.dump(output[dataset_name], wf, indent=6)
+        #with open(f"{dataset_name}.json", "w") as wf:
+        #    json.dump(output[dataset_name], wf, indent=6)
 
     return output
